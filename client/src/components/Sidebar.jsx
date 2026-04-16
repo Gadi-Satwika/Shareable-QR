@@ -8,6 +8,9 @@ const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // Get the Google user data we saved during login
+    const user = JSON.parse(localStorage.getItem('user')) || { name: 'Guest', avatar: '' };
+
     const menuItems = [
         { name: 'Dashboard', icon: <LayoutDashboard size={24} />, path: '/dashboard' },
         { name: 'My QRs', icon: <QrCode size={24} />, path: '/my-qrs' },
@@ -81,10 +84,34 @@ const Sidebar = () => {
                 })}
             </nav>
 
+            {/* User Profile Section */}
+            <div className={`flex items-center gap-3 p-2 mb-4 rounded-2xl bg-white/5 border border-white/5 transition-all ${!isHovered && 'justify-center'}`}>
+                {user.avatar ? (
+                    <img src={user.avatar} alt="profile" className="w-8 h-8 rounded-full border border-[#5C7C89]" />
+                ) : (
+                    <div className="w-8 h-8 rounded-full bg-[#5C7C89] flex items-center justify-center text-xs font-bold">
+                        {user.name.charAt(0)}
+                    </div>
+                )}
+                <AnimatePresence>
+                    {isHovered && (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <p className="text-sm font-semibold truncate w-32">{user.name}</p>
+                            <p className="text-[10px] text-white/40 truncate">Google Account</p>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
             {/* Logout Button */}
             <button 
                 onClick={handleLogout}
-                className="flex items-center gap-4 p-3 mt-auto text-white/50 hover:text-red-400 transition-colors pl-3 border-t border-white/5 pt-5"
+                className="flex items-center gap-4 p-3 text-white/50 hover:text-red-400 transition-colors pl-3 border-t border-white/5 pt-5"
             >
                 <LogOut size={24} />
                 <AnimatePresence>
