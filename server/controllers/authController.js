@@ -3,47 +3,124 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const nodemailer = require('nodemailer');
+
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER, // Your email (e.g., satwika@gmail.com)
+        pass: process.env.EMAIL_PASS  // Your Gmail App Password
+    }
+});
 
 // REGISTER LOGIC
 exports.register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
         let user = await User.findOne({ email });
-        if (user) return res.status(400).json({ success: false, msg: "User already exists" });
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        user = new User({ name, email, password: hashedPassword });
+        if (user) {
+            // 1. IDENTITY COLLISION CHECK:
+            // If the user exists but has no password, they signed up with Google.
+            // We MUST block manual password creation for Google accounts.
+            if (!user.password) {
+                return res.status(400).json({ 
+                    success: false, 
+                    msg: "This email is already linked with Google. Please sign in using the Google button." 
+                });
+            }
+
+            // 2. Standard check for fully verified manual users
+            if (user.isVerified) {
+                return res.status(400).json({ success: false, msg: "User already exists. Please login." });
+            }
+
+            // 3. Unverified manual user: Refresh OTP and update details
+            const salt = await bcrypt.genSalt(10);
+            user.name = name;
+            user.password = await bcrypt.hash(password, salt);
+            user.otp = otp; 
+            await user.save();
+        } else {
+            // 4. Brand new user
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
+            user = new User({ 
+                name, 
+                email, 
+                password: hashedPassword, 
+                otp, 
+                isVerified: false 
+            });
+            await user.save();
+        }
+
+        // 5. Send the email
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Your Verification Code',
+            text: `Your code is: ${otp}`
+        });
+
+        res.status(200).json({ success: true, msg: "OTP sent to email!" });
+    } catch (err) {
+        console.error("Registration Error:", err);
+        res.status(500).json({ success: false, msg: "Server error during registration" });
+    }
+};
+//OTP Verification Code
+
+exports.verifyOTP = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const user = await User.findOne({ email });
+
+        // Precise matching: Convert both to string and trim
+        if (!user || String(user.otp).trim() !== String(otp).trim()) {
+            return res.status(400).json({ success: false, msg: "Invalid OTP code" });
+        }
+
+        user.isVerified = true;
+        user.otp = undefined; // Wipe it so it's one-time use only
         await user.save();
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        res.status(201).json({ success: true, token, user: { name: user.name, email: user.email } });
+        res.status(200).json({ success: true, token, user: { name: user.name, email: user.email } });
     } catch (err) {
-        res.status(500).json({ success: false, msg: err.message });
+        res.status(500).json({ success: false, msg: "Verification failed" });
     }
 };
-
 // LOGIN LOGIC
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        // 1. Find User
         const user = await User.findOne({ email });
+
         if (!user) return res.status(400).json({ success: false, msg: "Invalid Credentials" });
 
-        // 2. Check Password
+        // THE SECURE GATE: Block unverified users
+        if (!user.isVerified) {
+            return res.status(403).json({ 
+                success: false, 
+                msg: "Account not verified. Please verify your email first." 
+            });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ success: false, msg: "Invalid Credentials" });
 
-        // 3. Generate Token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
         res.json({ success: true, token, user: { name: user.name, email: user.email } });
     } catch (err) {
-        res.status(500).json({ success: false, msg: err.message });
+        // The 500 error happens here if JWT_SECRET is missing or DB is down
+        console.error(err);
+        res.status(500).json({ success: false, msg: "Server Error" });
     }
 };
 

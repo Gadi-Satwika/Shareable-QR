@@ -8,8 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 const Layout = ({ children }) => {
     const location = useLocation();
-    
-    // Check if we are on the login page OR the root landing/login page
+
     const isAuthPage = location.pathname === '/login' || location.pathname === '/';
 
     return (

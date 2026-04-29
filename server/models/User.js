@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
 
-const UserSchema = new mongoose.Schema({
+
+const userSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String }, // Optional if they use Google
-    googleId: { type: String }, // To link their Google account
-    avatar: { type: String }   // Their profile picture
-}, { timestamps: true });
+    password: { type: String }, // Optional for Google users
+    isVerified: { type: Boolean, default: false },
+    otp: { type: String },
+    avatar: { type: String }
+});
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model('User', userSchema);
