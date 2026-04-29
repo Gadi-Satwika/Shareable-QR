@@ -9,7 +9,7 @@ require('dotenv').config();
 const app = express();
 
 const qrRoutes = require('./routes/qrRoutes');
-const authRoutes = require('./routes/authRoutes')
+const authRoutes = require('./routes/authRoutes');
 
 // Middleware
 app.use(cors());

@@ -40,3 +40,21 @@ exports.redirectQR = async (req, res) => {
         res.status(500).send("Server Error");
     }
 };
+
+// Get all QRs
+exports.getUsersQRs = async (req, res) => {
+    try {
+        // Fetch all QRs from the database
+        const qrs = await QR.find().sort({ createdAt: -1 });
+        
+        res.status(200).json({ 
+            success: true, 
+            data: qrs 
+        });
+    } catch (err) {
+        res.status(500).json({ 
+            success: false, 
+            message: "Failed to fetch QR library" 
+        });
+    }
+};

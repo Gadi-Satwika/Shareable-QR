@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import GlowCursor from './components/GlowCursor';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import MyQRs from './pages/MyQRs';
 import ProtectedRoute from './components/ProtectedRoute';
 
 const Layout = ({ children }) => {
@@ -43,6 +44,14 @@ function App() {
                   element={
                       <ProtectedRoute>
                           <Dashboard />
+                      </ProtectedRoute>
+                  } 
+              />
+              <Route 
+                  path="/my-qrs" 
+                  element={
+                      <ProtectedRoute>
+                          <MyQRs />
                       </ProtectedRoute>
                   } 
               />

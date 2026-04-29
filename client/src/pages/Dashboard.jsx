@@ -1,3 +1,146 @@
-export default function Dashboard(){
-    return <div>Hello</div>
-}
+import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { motion } from 'framer-motion';
+import { Download, Plus, Link as LinkIcon, Loader2, CheckCircle } from 'lucide-react';
+import API from '../api/axios';
+
+const Dashboard = () => {
+    const [url, setUrl] = useState('');
+    const [qrName, setQrName] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [generatedData, setGeneratedData] = useState(null); // To store DB response
+
+    const user = JSON.parse(localStorage.getItem('user')) || { name: 'User' };
+
+    const handleCreateQR = async () => {
+        if (!url || !qrName) return alert("Please fill in all fields");
+        
+        setLoading(true);
+        try {
+            // Hits your existing router.post('/generate', createQR)
+            const res = await API.post('/qr/generate', {
+                title: qrName,
+                originalUrl: url
+            });
+
+            if (res.data.success) {
+                setGeneratedData(res.data.data); // This contains the shortId from DB
+            }
+        } catch (err) {
+            console.error("Creation failed", err);
+            alert("Error creating QR");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const downloadQR = () => {
+        const svg = document.getElementById("qr-gen");
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = `${qrName || 'qr-code'}.png`;
+            downloadLink.click();
+        };
+        
+        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    };
+
+    // The logic: QR should point to our redirect engine, not the raw URL
+    // Change this line in your Dashboard.jsx
+    const redirectionUrl = generatedData 
+        ? `http://10.254.204.6:5000/api/qr/${generatedData.shortId}` 
+        : url;
+
+    return (
+        <div className="max-w-6xl mx-auto">
+            <header className="mb-10">
+                <h1 className="text-4xl font-bold text-white mb-2">Hello, {user.name.split(' ')[0]}!</h1>
+                <p className="text-[#5C7C89]">Your Dynamic QR Engine is active.</p>
+            </header>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Form Section */}
+                <div className="lg:col-span-2 bg-[#242424]/40 backdrop-blur-xl p-8 rounded-[2rem] border border-white/5">
+                    <h2 className="text-xl font-semibold text-white mb-8 flex items-center gap-2">
+                        <Plus className="text-[#5C7C89]" /> Generate New Dynamic QR
+                    </h2>
+
+                    <div className="space-y-6">
+                        <div className="relative">
+                            <label className="text-white/40 text-xs uppercase tracking-widest ml-1 mb-2 block">Project Title</label>
+                            <input 
+                                type="text" 
+                                placeholder="e.g. Portfolio Campaign"
+                                className="w-full bg-[#0D1B2A]/40 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#5C7C89]"
+                                onChange={(e) => setQrName(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="relative">
+                            <label className="text-white/40 text-xs uppercase tracking-widest ml-1 mb-2 block">Destination URL</label>
+                            <div className="relative">
+                                <LinkIcon className="absolute left-4 top-3.5 text-[#5C7C89]" size={18} />
+                                <input 
+                                    type="text" 
+                                    placeholder="https://your-link.com"
+                                    className="w-full bg-[#0D1B2A]/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#5C7C89]"
+                                    onChange={(e) => setUrl(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <button 
+                            onClick={handleCreateQR}
+                            disabled={loading}
+                            className="w-full bg-[#5C7C89] hover:bg-[#4a646f] text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            {loading ? <Loader2 className="animate-spin" /> : "Save & Generate Code"}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Preview Section */}
+                <div className="bg-[#1a1a1a]/60 backdrop-blur-xl p-8 rounded-[2rem] border border-[#5C7C89]/20 flex flex-col items-center shadow-2xl">
+                    <span className="text-white/40 text-xs uppercase tracking-[0.2em] mb-6">Live Preview</span>
+                    
+                    <div className="bg-white p-5 rounded-[2.5rem] shadow-[0_0_60px_rgba(92,124,137,0.2)] mb-8 transition-transform hover:scale-105">
+                        <QRCodeSVG 
+                            id="qr-gen"
+                            value={redirectionUrl || "https://qr-flow.com"} 
+                            size={200}
+                            level={"H"}
+                        />
+                    </div>
+
+                    {generatedData && (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
+                            <div className="flex items-center justify-center gap-2 text-green-400 text-sm mb-1">
+                                <CheckCircle size={16} /> Saved to Database
+                            </div>
+                            <p className="text-white/60 text-xs font-mono">ID: {generatedData.shortId}</p>
+                        </motion.div>
+                    )}
+
+                    <button 
+                        onClick={downloadQR}
+                        className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white py-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+                    >
+                        <Download size={18} /> Download Asset
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Dashboard;
