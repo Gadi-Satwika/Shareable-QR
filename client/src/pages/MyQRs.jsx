@@ -27,6 +27,26 @@ const MyQRs = () => {
         }
     };
 
+    const downloadPopupQR = (title, shortId) => {
+        const svg = document.getElementById("modal-qr");
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = `${title}.png`;
+            downloadLink.click();
+        };
+        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    };
+
     return (
         <div className="max-w-6xl mx-auto pb-20">
             <header className="mb-10">
@@ -109,17 +129,15 @@ const MyQRs = () => {
 
             <div className="bg-white p-6 rounded-[2rem] inline-block mb-8">
                 <QRCodeSVG 
+                    id="modal-qr" // Important: ID must match the helper
                     value={`http://10.254.204.6:5000/api/qr/${selectedQR.shortId}`}
                     size={200}
                 />
             </div>
 
             <button 
-                className="w-full bg-[#5C7C89] py-3 rounded-xl text-white font-bold hover:bg-[#4a646f] transition-all"
-                onClick={() => {
-                    // Re-use your download logic here if you want
-                    alert("Ready to download!");
-                }}
+                onClick={() => downloadPopupQR(selectedQR.title, selectedQR.shortId)}
+                className="w-full bg-[#5C7C89] py-3 rounded-xl text-white font-bold"
             >
                 Download PNG
             </button>
