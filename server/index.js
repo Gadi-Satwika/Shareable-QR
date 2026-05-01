@@ -1,3 +1,4 @@
+const path = require("path")
 const dns = require('node:dns'); // Add this line
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
@@ -17,6 +18,8 @@ app.use(express.json());
 
 app.use('/api/qr', qrRoutes);
 app.use('/api/auth', authRoutes);
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)

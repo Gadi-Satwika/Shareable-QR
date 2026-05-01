@@ -27,6 +27,25 @@ const MyQRs = () => {
         }
     };
 
+   const handleDelete = async (id) => {
+    // 1. Professional Confirmation
+    if (window.confirm("Are you sure you want to permanently delete this QR flow? This cannot be undone.")) {
+        try {
+            // 2. THE REAL WORK: Delete from MongoDB via the route we created
+            const res = await API.delete(`/qr/${id}`);
+
+            if (res.data.success) {
+                // 3. UI SYNC: Filter the local state so the card disappears instantly
+                setQrs((prevQrs) => prevQrs.filter((qr) => qr._id !== id));
+                alert("QR successfully removed from database.");
+            }
+        } catch (err) {
+            console.error("Delete Error:", err);
+            alert("Failed to delete from server. Please check your connection.");
+        }
+    }
+};
+
     const downloadPopupQR = (title, shortId) => {
         const svg = document.getElementById("modal-qr");
         const svgData = new XMLSerializer().serializeToString(svg);
@@ -92,9 +111,21 @@ const MyQRs = () => {
                                         <QrCode size={18} />
                                     </button>
                                     <button className="p-2 hover:text-white text-white/20 transition-colors">
-                                        <ExternalLink size={18} />
+                                        <a 
+                                            href={qr.originalUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="p-2 hover:text-white text-white/20 transition-colors"
+                                            title="Visit Link"
+                                        >
+                                            <ExternalLink size={18} />
+                                        </a>
                                     </button>
-                                    <button className="p-2 hover:text-red-400 text-white/20 transition-colors">
+                                    <button 
+                                        onClick={() => handleDelete(qr._id)}
+                                        className="p-2 hover:text-red-400 text-white/20 transition-colors"
+                                        title="Delete"
+                                    >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>

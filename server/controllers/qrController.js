@@ -1,6 +1,23 @@
 const QR = require('../models/QR');
 const { nanoid } = require('nanoid');
 
+const multer = require('multer');
+const path = require('path');
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        // Create a unique filename: date + original name
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const upload = multer({ storage: storage });
+
+exports.uploadMiddleware = upload.single('file');
+
 // Create a new Dynamic QR
 exports.createQR = async (req, res) => {
     try {
@@ -58,3 +75,15 @@ exports.getUsersQRs = async (req, res) => {
         });
     }
 };
+
+exports.deleteQR = async(req,res) => {
+    const id = req.params.id
+    try {
+        await QR.findByIdAndDelete(id);
+        res.json({ success: true, msg: "Deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ success: false });
+    }
+}
+
+
