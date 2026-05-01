@@ -4,6 +4,8 @@ const { nanoid } = require('nanoid');
 const multer = require('multer');
 const path = require('path');
 
+const fs = require('fs');
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
@@ -43,21 +45,24 @@ exports.redirectQR = async (req, res) => {
         const { shortId } = req.params;
         const qrEntry = await QR.findOne({ shortId });
 
-        if (!qrEntry) {
-            return res.status(404).send("QR Not Found");
-        }
+        if (!qrEntry) return res.status(404).send("QR Not Found");
 
-        // Increment scan count and save
+        // Advanced Tracking
+        const scanData = {
+            timestamp: new Date(),
+            device: req.headers['user-agent'].includes('Mobile') ? 'Mobile' : 'Desktop',
+            browser: req.headers['user-agent'].split(' ')[0] // Simple browser detection
+        };
+
         qrEntry.scanCount += 1;
+        qrEntry.scans.push(scanData); // Storing the "When" and "How"
         await qrEntry.save();
 
-        // Redirect to the actual destination
         return res.redirect(qrEntry.originalUrl);
     } catch (err) {
         res.status(500).send("Server Error");
     }
 };
-
 // Get all QRs
 exports.getUsersQRs = async (req, res) => {
     try {
@@ -76,14 +81,36 @@ exports.getUsersQRs = async (req, res) => {
     }
 };
 
-exports.deleteQR = async(req,res) => {
-    const id = req.params.id
+exports.deleteQR = async (req, res) => {
+    const { id } = req.params;
+    
     try {
-        await QR.findByIdAndDelete(id);
-        res.json({ success: true, msg: "Deleted successfully" });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
-}
+        // 1. Find the QR first so we can see if it has a file path
+        const qrToDelete = await QR.findById(id);
+        
+        if (!qrToDelete) {
+            return res.status(404).json({ success: false, msg: "QR not found" });
+        }
 
+        // 2. If it's a File QR, delete the physical file from /uploads
+        if (qrToDelete.originalUrl.includes('/uploads/')) {
+            // Extract the filename from the URL
+            const filename = qrToDelete.originalUrl.split('/').pop();
+            const filePath = path.join(__dirname, '../uploads', filename);
+
+            // Physically remove file from the server
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log(`Deleted file: ${filename}`);
+            }
+        }
+
+        // 3. Now delete the record from MongoDB
+        await QR.findByIdAndDelete(id);
+        
+        res.json({ success: true, msg: "Database record and physical file deleted." });
+    } catch (err) {
+        res.status(500).json({ success: false, msg: err.message });
+    }
+};
 
