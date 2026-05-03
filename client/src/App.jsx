@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import MyQRs from './pages/MyQRs';
 import ProtectedRoute from './components/ProtectedRoute';
+import Analytics from './pages/Analytics';
 
 const Layout = ({ children }) => {
     const location = useLocation();
@@ -52,6 +53,14 @@ function App() {
                   element={
                       <ProtectedRoute>
                           <MyQRs />
+                      </ProtectedRoute>
+                  } 
+              />
+              <Route 
+                  path="/analytics" 
+                  element={
+                      <ProtectedRoute>
+                          <Analytics />
                       </ProtectedRoute>
                   } 
               />

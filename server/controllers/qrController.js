@@ -114,3 +114,22 @@ exports.deleteQR = async (req, res) => {
     }
 };
 
+exports.getQRStats = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const qr = await QR.findById(id);
+        
+        if (!qr) return res.status(404).json({ msg: "Not found" });
+
+        // Logic to group scans by date for a chart
+        const stats = qr.scans.reduce((acc, scan) => {
+            const date = scan.timestamp.toISOString().split('T')[0];
+            acc[date] = (acc[date] || 0) + 1;
+            return acc;
+        }, {});
+
+        res.json({ success: true, stats, total: qr.scanCount, deviceData: qr.scans });
+    } catch (err) {
+        res.status(500).json({ success: false });
+    }
+};
