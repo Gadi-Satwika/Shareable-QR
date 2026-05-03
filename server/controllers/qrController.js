@@ -23,14 +23,14 @@ exports.uploadMiddleware = upload.single('file');
 // Create a new Dynamic QR
 exports.createQR = async (req, res) => {
     try {
-        const { title, originalUrl } = req.body;
-        const shortId = nanoid(6);
+        if (!req.user) return res.status(401).json({ msg: "Auth failed" });
 
+        const { title, originalUrl } = req.body;
         const newQR = new QR({
-            // Remove the user line entirely for now
+            user: req.user.id,
             title,
             originalUrl,
-            shortId
+            shortId: nanoid(6)
         });
 
         await newQR.save();
@@ -66,18 +66,16 @@ exports.redirectQR = async (req, res) => {
 // Get all QRs
 exports.getUsersQRs = async (req, res) => {
     try {
-        // Fetch all QRs from the database
-        const qrs = await QR.find().sort({ createdAt: -1 });
-        
-        res.status(200).json({ 
-            success: true, 
-            data: qrs 
-        });
+        // Safety Guard: Check if req.user exists
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ success: false, message: "User not authenticated" });
+        }
+
+        const qrs = await QR.find({ user: req.user.id }).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: qrs });
     } catch (err) {
-        res.status(500).json({ 
-            success: false, 
-            message: "Failed to fetch QR library" 
-        });
+        console.error("Fetch Error:", err); // This shows in your terminal
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
@@ -85,30 +83,28 @@ exports.deleteQR = async (req, res) => {
     const { id } = req.params;
     
     try {
-        // 1. Find the QR first so we can see if it has a file path
-        const qrToDelete = await QR.findById(id);
+        // Find the QR and ensure the 'user' field matches the person asking to delete
+        const qrToDelete = await QR.findOne({ _id: id, user: req.user.id });
         
         if (!qrToDelete) {
-            return res.status(404).json({ success: false, msg: "QR not found" });
+            // If the ID exists but belongs to someone else, we return 404/401
+            return res.status(404).json({ success: false, msg: "QR not found or unauthorized" });
         }
 
-        // 2. If it's a File QR, delete the physical file from /uploads
+        // Physical file deletion logic remains same
         if (qrToDelete.originalUrl.includes('/uploads/')) {
-            // Extract the filename from the URL
             const filename = qrToDelete.originalUrl.split('/').pop();
             const filePath = path.join(__dirname, '../uploads', filename);
 
-            // Physically remove file from the server
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
-                console.log(`Deleted file: ${filename}`);
             }
         }
 
-        // 3. Now delete the record from MongoDB
+        // Delete the record only after confirming ownership
         await QR.findByIdAndDelete(id);
         
-        res.json({ success: true, msg: "Database record and physical file deleted." });
+        res.json({ success: true, msg: "Asset deleted successfully." });
     } catch (err) {
         res.status(500).json({ success: false, msg: err.message });
     }
@@ -117,11 +113,11 @@ exports.deleteQR = async (req, res) => {
 exports.getQRStats = async (req, res) => {
     try {
         const { id } = req.params;
-        const qr = await QR.findById(id);
+        // Verify this QR belongs to the user
+        const qr = await QR.findOne({ _id: id, user: req.user.id });
         
-        if (!qr) return res.status(404).json({ msg: "Not found" });
+        if (!qr) return res.status(404).json({ msg: "Data not found" });
 
-        // Logic to group scans by date for a chart
         const stats = qr.scans.reduce((acc, scan) => {
             const date = scan.timestamp.toISOString().split('T')[0];
             acc[date] = (acc[date] || 0) + 1;

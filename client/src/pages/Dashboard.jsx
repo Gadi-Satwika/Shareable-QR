@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
 import { Download, Plus, Link as LinkIcon, Loader2, CheckCircle } from 'lucide-react';
 import API from '../api/axios';
+import { REDIRECT_BASE_URL, BASE_URL } from '../config';
 
 const Dashboard = () => {
     const [url, setUrl] = useState('');
@@ -16,51 +17,45 @@ const Dashboard = () => {
     const user = JSON.parse(localStorage.getItem('user')) || { name: 'User' };
 
     const handleCreateQR = async () => {
-    // Basic validation
-    if (!qrName || (mode === 'link' && !url) || (mode === 'file' && !file)) {
-        return alert("Please fill in all fields and provide a source (Link or File).");
-    }
-    
-    setLoading(true);
-    try {
-        let finalUrl = url;
+        if (!qrName || (mode === 'link' && !url) || (mode === 'file' && !file)) {
+            return alert("Please fill in all fields.");
+        }
 
-        // --- STEP 1: Handle File Upload if in File Mode ---
-        if (mode === 'file' && file) {
-            const formData = new FormData();
-            formData.append('file', file); // 'file' must match your uploadMiddleware key
-            
-            const uploadRes = await API.post('/qr/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+        setLoading(true);
+        try {
+            let finalUrl = url;
+
+            if (mode === 'file' && file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const uploadRes = await API.post('/qr/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                if (uploadRes.data.success) {
+                    // NO MORE HARDCODED IP HERE
+                    finalUrl = `${BASE_URL}${uploadRes.data.filePath}`;
+                } else {
+                    throw new Error("File upload failed");
+                }
+            }
+
+            const res = await API.post('/qr/generate', {
+                title: qrName,
+                originalUrl: finalUrl 
             });
 
-            if (uploadRes.data.success) {
-                // Construct the full URL for the hosted file
-                // Using your IP so it's accessible over the hotspot
-                finalUrl = `http://10.254.204.6:5000${uploadRes.data.filePath}`;
-            } else {
-                throw new Error("File upload failed");
+            if (res.data.success) {
+                setGeneratedData(res.data.data);
             }
+        } catch (err) {
+            console.error("Creation failed", err);
+            alert("Error creating QR flow");
+        } finally {
+            setLoading(false);
         }
-
-        // --- STEP 2: Save the QR Mapping to MongoDB ---
-        // This hits your existing router.post('/generate', createQR)
-        const res = await API.post('/qr/generate', {
-            title: qrName,
-            originalUrl: finalUrl // This is either the raw URL or the new File URL
-        });
-
-        if (res.data.success) {
-            setGeneratedData(res.data.data);
-        }
-
-    } catch (err) {
-        console.error("Creation failed", err);
-        alert(err.response?.data?.msg || "Error creating QR flow");
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     const downloadQR = () => {
         const svg = document.getElementById("qr-gen");
@@ -83,10 +78,8 @@ const Dashboard = () => {
         img.src = "data:image/svg+xml;base64," + btoa(svgData);
     };
 
-    // The logic: QR should point to our redirect engine, not the raw URL
-    // Change this line in your Dashboard.jsx
     const redirectionUrl = generatedData 
-        ? `http://10.254.204.6:5000/api/qr/${generatedData.shortId}` 
+        ? `${REDIRECT_BASE_URL}/${generatedData.shortId}` 
         : url;
 
     return (
@@ -115,59 +108,58 @@ const Dashboard = () => {
                         </div>
 
                         <div className="relative">
-    {/* Mode Switcher */}
-    <div className="flex items-center justify-between mb-2 ml-1">
-        <label className="text-white/40 text-xs uppercase tracking-widest block">
-            {mode === 'link' ? 'Destination URL' : 'Upload Document'}
-        </label>
-        <div className="flex gap-4 bg-[#0D1B2A]/60 p-1 rounded-lg border border-white/5">
-            <button 
-                onClick={() => setMode('link')}
-                className={`text-[10px] px-3 py-1 rounded-md transition-all ${mode === 'link' ? 'bg-[#5C7C89] text-white' : 'text-white/40'}`}
-            >
-                LINK
-            </button>
-            <button 
-                onClick={() => setMode('file')}
-                className={`text-[10px] px-3 py-1 rounded-md transition-all ${mode === 'file' ? 'bg-[#5C7C89] text-white' : 'text-white/40'}`}
-            >
-                FILE
-            </button>
-        </div>
-    </div>
+                            <div className="flex items-center justify-between mb-2 ml-1">
+                                <label className="text-white/40 text-xs uppercase tracking-widest block">
+                                    {mode === 'link' ? 'Destination URL' : 'Upload Document'}
+                                </label>
+                                <div className="flex gap-4 bg-[#0D1B2A]/60 p-1 rounded-lg border border-white/5">
+                                    <button 
+                                        onClick={() => setMode('link')}
+                                        className={`text-[10px] px-3 py-1 rounded-md transition-all ${mode === 'link' ? 'bg-[#5C7C89] text-white' : 'text-white/40'}`}
+                                    >
+                                        LINK
+                                    </button>
+                                    <button 
+                                        onClick={() => setMode('file')}
+                                        className={`text-[10px] px-3 py-1 rounded-md transition-all ${mode === 'file' ? 'bg-[#5C7C89] text-white' : 'text-white/40'}`}
+                                    >
+                                        FILE
+                                    </button>
+                                </div>
+                            </div>
 
-    <div className="relative">
-        {mode === 'link' ? (
-            <>
-                <LinkIcon className="absolute left-4 top-3.5 text-[#5C7C89]" size={18} />
-                <input 
-                    type="text" 
-                    placeholder="https://your-link.com"
-                    className="w-full bg-[#0D1B2A]/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#5C7C89]"
-                    onChange={(e) => setUrl(e.target.value)}
-                />
-            </>
-        ) : (
-            <div className="relative group">
-                <input 
-                    type="file" 
-                    id="file-upload"
-                    className="hidden"
-                    onChange={(e) => setFile(e.target.files[0])}
-                />
-                <label 
-                    htmlFor="file-upload"
-                    className="w-full bg-[#0D1B2A]/40 border border-dashed border-white/20 rounded-xl py-3 px-4 text-white/60 flex items-center gap-3 cursor-pointer hover:border-[#5C7C89]/50 transition-all"
-                >
-                    <div className="bg-[#5C7C89]/20 p-1.5 rounded-lg">
-                        <Plus size={16} className="text-[#5C7C89]" />
-                    </div>
-                    {file ? <span className="text-white">{file.name}</span> : "Select PDF, Image or Doc"}
-                </label>
-            </div>
-        )}
-    </div>
-</div>
+                            <div className="relative">
+                                {mode === 'link' ? (
+                                    <>
+                                        <LinkIcon className="absolute left-4 top-3.5 text-[#5C7C89]" size={18} />
+                                        <input 
+                                            type="text" 
+                                            placeholder="https://your-link.com"
+                                            className="w-full bg-[#0D1B2A]/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-[#5C7C89]"
+                                            onChange={(e) => setUrl(e.target.value)}
+                                        />
+                                    </>
+                                ) : (
+                                    <div className="relative group">
+                                        <input 
+                                            type="file" 
+                                            id="file-upload"
+                                            className="hidden"
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                        />
+                                        <label 
+                                            htmlFor="file-upload"
+                                            className="w-full bg-[#0D1B2A]/40 border border-dashed border-white/20 rounded-xl py-3 px-4 text-white/60 flex items-center gap-3 cursor-pointer hover:border-[#5C7C89]/50 transition-all"
+                                        >
+                                            <div className="bg-[#5C7C89]/20 p-1.5 rounded-lg">
+                                                <Plus size={16} className="text-[#5C7C89]" />
+                                            </div>
+                                            {file ? <span className="text-white">{file.name}</span> : "Select PDF, Image or Doc"}
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
                         <button 
                             onClick={handleCreateQR}

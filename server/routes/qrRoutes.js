@@ -1,18 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { createQR, redirectQR , getUsersQRs, deleteQR, uploadMiddleware, getQRStats} = require('../controllers/qrController');
+const { protect } = require('../middleware/auth');
 
 // POST: Create a new QR mapping
-router.post('/generate', createQR);
-
-router.get('/all', getUsersQRs);
-
+router.post('/generate', protect, createQR);
+router.get('/all', protect, getUsersQRs);
+router.delete('/:id', protect, deleteQR);
+router.get('/stats/:id', protect, getQRStats);
 // GET: The redirection engine (for when someone scans)
 router.get('/:shortId', redirectQR);
-
-router.get('/stats/:id', getQRStats);
-
-router.delete('/:id', deleteQR)
 
 router.post('/upload', uploadMiddleware, (req, res) => {
     if (!req.file) {
@@ -25,5 +22,10 @@ router.post('/upload', uploadMiddleware, (req, res) => {
         filePath: `/uploads/${req.file.filename}` 
     });
 });
+
+console.log("Checking imports:");
+console.log("createQR:", typeof createQR);
+console.log("protect:", typeof protect);
+console.log("uploadMiddleware:", typeof uploadMiddleware);
 
 module.exports = router;

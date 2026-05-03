@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, BarChart3, Calendar, Trash2, QrCode,X } from 'lucide-react';
+import { ExternalLink, BarChart3, Calendar, Trash2, QrCode,X, Monitor, Smartphone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import API from '../api/axios';
+import { REDIRECT_BASE_URL } from '../config';
 
 const MyQRs = () => {
     const [qrs, setQrs] = useState([]);
     const [loading, setLoading] = useState(true);
-
     const [selectedQR, setSelectedQR] = useState(null);
+    const [analysisQR, setAnalysisQR] = useState(null);
 
     useEffect(() => {
         fetchQRs();
@@ -89,9 +90,14 @@ const MyQRs = () => {
                                     <QrCode className="text-[#5C7C89]" size={24} />
                                 </div>
                                 <div className="flex items-center gap-2 bg-[#0D1B2A]/60 px-4 py-2 rounded-full border border-white/5">
-                                    <BarChart3 size={16} className="text-[#5C7C89]" />
-                                    <span className="text-white font-bold">{qr.scanCount}</span>
-                                    <span className="text-white/40 text-xs uppercase ml-1">Scans</span>
+                                    <button 
+                                        onClick={() => setAnalysisQR(qr)} // Open the Analytics Modal
+                                        className="flex items-center gap-2 bg-[#0D1B2A]/60 px-4 py-2 rounded-full border border-white/5 hover:border-[#5C7C89]/50 transition-all cursor-pointer"
+                                    >
+                                        <BarChart3 size={16} className="text-[#5C7C89]" />
+                                        <span className="text-white font-bold">{qr.scanCount}</span>
+                                        <span className="text-white/40 text-[10px] uppercase ml-1">Scans</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -142,35 +148,89 @@ const MyQRs = () => {
             )}
 
             {selectedQR && (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0D1B2A]/90 backdrop-blur-md p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0D1B2A]/90 backdrop-blur-md p-4">
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-[#242424] border border-white/10 p-8 rounded-[2.5rem] max-w-sm w-full text-center relative shadow-2xl"
+                    >
+                        <button 
+                            onClick={() => setSelectedQR(null)}
+                            className="absolute top-6 right-6 text-white/40 hover:text-white"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <h3 className="text-xl font-bold text-white mb-2">{selectedQR.title}</h3>
+                        <p className="text-white/40 text-xs mb-8 truncate px-4">{selectedQR.originalUrl}</p>
+
+                        <div className="bg-white p-6 rounded-[2rem] inline-block mb-8">
+                            <QRCodeSVG 
+                                id="modal-qr" // Important: ID must match the helper
+                                value={`${REDIRECT_BASE_URL}/${selectedQR.shortId}`}
+                                size={200}
+                            />
+                        </div>
+
+                        <button 
+                            onClick={() => downloadPopupQR(selectedQR.title, selectedQR.shortId)}
+                            className="w-full bg-[#5C7C89] py-3 rounded-xl text-white font-bold"
+                        >
+                            Download PNG
+                        </button>
+                    </motion.div>
+                </div>
+            )}
+
+            {analysisQR && (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0D1B2A]/90 backdrop-blur-md p-4">
         <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-[#242424] border border-white/10 p-8 rounded-[2.5rem] max-w-sm w-full text-center relative shadow-2xl"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#242424] border border-white/10 p-8 rounded-[2.5rem] max-w-lg w-full relative shadow-2xl"
         >
             <button 
-                onClick={() => setSelectedQR(null)}
+                onClick={() => setAnalysisQR(null)}
                 className="absolute top-6 right-6 text-white/40 hover:text-white"
             >
                 <X size={24} />
             </button>
 
-            <h3 className="text-xl font-bold text-white mb-2">{selectedQR.title}</h3>
-            <p className="text-white/40 text-xs mb-8 truncate px-4">{selectedQR.originalUrl}</p>
+            <div className="mb-8">
+                <h3 className="text-2xl font-bold text-white mb-1">Scan Intelligence</h3>
+                <p className="text-[#5C7C89] text-sm uppercase tracking-widest">{analysisQR.title}</p>
+            </div>
 
-            <div className="bg-white p-6 rounded-[2rem] inline-block mb-8">
-                <QRCodeSVG 
-                    id="modal-qr" // Important: ID must match the helper
-                    value={`http://10.254.204.6:5000/api/qr/${selectedQR.shortId}`}
-                    size={200}
-                />
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {analysisQR.scans && analysisQR.scans.length > 0 ? (
+                    analysisQR.scans.slice().reverse().map((scan, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-[#5C7C89]/20 p-2 rounded-xl">
+                                    {scan.device === 'Mobile' ? <Smartphone size={18} className="text-[#5C7C89]" /> : <Monitor size={18} className="text-[#5C7C89]" />}
+                                </div>
+                                <div>
+                                    <div className="text-white text-sm font-medium">{scan.device} User</div>
+                                    <div className="text-white/30 text-[10px] uppercase">
+                                        {new Date(scan.timestamp).toLocaleDateString()} • {new Date(scan.timestamp).toLocaleTimeString()}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-[10px] font-mono text-[#5C7C89] bg-[#5C7C89]/10 px-2 py-1 rounded-md">
+                                {scan.browser || 'Chrome'}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-10 text-white/20">No scan data recorded yet.</div>
+                )}
             </div>
 
             <button 
-                onClick={() => downloadPopupQR(selectedQR.title, selectedQR.shortId)}
-                className="w-full bg-[#5C7C89] py-3 rounded-xl text-white font-bold"
+                onClick={() => setAnalysisQR(null)}
+                className="w-full mt-8 bg-white/5 border border-white/10 py-3 rounded-xl text-white/60 font-medium hover:bg-white/10 transition-all"
             >
-                Download PNG
+                Close Insights
             </button>
         </motion.div>
     </div>
