@@ -8,6 +8,7 @@ import MyQRs from './pages/MyQRs';
 import ProtectedRoute from './components/ProtectedRoute';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
+import Landing from './pages/Landing';
 
 const Layout = ({ children }) => {
     const location = useLocation();
@@ -40,6 +41,7 @@ function App() {
         <GlowCursor />
         <Layout>
             <Routes>
+              <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route 
                   path="/dashboard" 
@@ -73,7 +75,7 @@ function App() {
                       </ProtectedRoute>
                   } 
               />
-              <Route path="/" element={localStorage.getItem('token') ? <Navigate to="/dashboard" /> : <Login />} />
+              <Route path="/" element={localStorage.getItem('token') ? <Navigate to="/dashboard" /> : <Landing />} />
             </Routes>
         </Layout>
     </Router>

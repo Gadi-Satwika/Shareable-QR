@@ -1,12 +1,19 @@
 @import "tailwindcss";
 
 @layer base {
-  body {
-    margin: 0;
-    /* Using the #1F4959 and #0D1B2A depth */
-    background: linear-gradient(135deg, #1F4959 0%, #0D1B2A 100%);
+  html, body, #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100vw !important;
     min-height: 100vh;
-    color: #FFFFFF;
-    font-family: 'Inter', sans-serif; /* Clean, modern font */
+    overflow-x: hidden; /* Fixes the right-side gap */
+    background-color: #0D1B2A;
+  }
+
+  body {
+    display: block !important;
+    /* Creating a deep, fixed background that never shifts */
+    background: radial-gradient(circle at 50% 0%, #1F4959 0%, #0D1B2A 70%);
+    background-attachment: fixed;
   }
 }
