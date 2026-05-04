@@ -3,6 +3,10 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const QR = require('../models/QR');
+const fs = require('fs');
+const path = require('path');
+
 const nodemailer = require('nodemailer');
 
 const { OAuth2Client } = require('google-auth-library');
@@ -157,5 +161,54 @@ exports.googleLogin = async (req, res) => {
     } catch (err) {
         console.error("Google Auth Error Detail:", err.response?.data || err.message);
         res.status(400).json({ success: false, msg: "Google Authentication Failed" });
+    }
+};
+
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) return res.status(404).json({ msg: "User not found" });
+
+        if (name) user.name = name;
+        // You can add password update logic here later
+        
+        await user.save();
+        res.json({ success: true, user: { name: user.name, email: user.email } });
+    } catch (err) {
+        res.status(500).json({ success: false, msg: err.message });
+    }
+};
+
+
+exports.deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // 1. Find all QRs belonging to this user
+        const userQRs = await QR.find({ user: userId });
+
+        // 2. Loop through and delete physical files
+        userQRs.forEach(qr => {
+            if (qr.originalUrl.includes('/uploads/')) {
+                const filename = qr.originalUrl.split('/').pop();
+                const filePath = path.join(__dirname, '../uploads', filename);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+            }
+        });
+
+        // 3. Delete all QR records from MongoDB
+        await QR.deleteMany({ user: userId });
+
+        // 4. Delete the User record
+        await User.findByIdAndDelete(userId);
+
+        res.json({ success: true, msg: "Account and all associated data deleted." });
+    } catch (err) {
+        res.status(500).json({ success: false, msg: err.message });
     }
 };

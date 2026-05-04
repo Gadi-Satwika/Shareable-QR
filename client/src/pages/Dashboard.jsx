@@ -35,7 +35,7 @@ const Dashboard = () => {
 
                 if (uploadRes.data.success) {
                     // NO MORE HARDCODED IP HERE
-                    finalUrl = `${BASE_URL}${uploadRes.data.filePath}`;
+                    finalUrl = uploadRes.data.filePath;
                 } else {
                     throw new Error("File upload failed");
                 }

@@ -13,7 +13,11 @@ const qrRoutes = require('./routes/qrRoutes');
 const authRoutes = require('./routes/authRoutes');
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: '*', // Allow all origins during dev
+    methods: ['GET', 'POST', 'DELETE', 'PUT'],
+    allowedHeaders: ['Content-Type', 'Authorization'] // EXPLICITLY allow Authorization
+}));
 app.use(express.json());
 
 app.use('/api/qr', qrRoutes);

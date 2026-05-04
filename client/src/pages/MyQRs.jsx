@@ -3,7 +3,7 @@ import { ExternalLink, BarChart3, Calendar, Trash2, QrCode,X, Monitor, Smartphon
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import API from '../api/axios';
-import { REDIRECT_BASE_URL } from '../config';
+import { REDIRECT_BASE_URL, BASE_URL } from '../config';
 
 const MyQRs = () => {
     const [qrs, setQrs] = useState([]);
@@ -102,8 +102,11 @@ const MyQRs = () => {
                             </div>
 
                             <h3 className="text-xl font-semibold text-white mb-1">{qr.title}</h3>
-                            <p className="text-white/40 text-sm mb-4 font-mono truncate">{qr.originalUrl}</p>
-
+                           <p className="text-white/40 text-xs mb-8 truncate px-4">
+                                {qr.originalUrl.startsWith('http') 
+                                    ? qr.originalUrl 
+                                    : `${BASE_URL}${qr.originalUrl}`}
+                            </p>
                             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                                 <div className="flex items-center gap-2 text-white/40 text-xs">
                                     <Calendar size={14} />
