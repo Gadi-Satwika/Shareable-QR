@@ -6,6 +6,8 @@ const path = require('path');
 
 const fs = require('fs');
 
+const { generateSmartMetadata } = require('../utils/aiHelper');
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
@@ -16,6 +18,7 @@ const storage = multer.diskStorage({
     }
 });
 
+// Replace your existing aiMetadata line with this:
 const upload = multer({ storage: storage });
 
 exports.uploadMiddleware = upload.single('file');
@@ -23,20 +26,37 @@ exports.uploadMiddleware = upload.single('file');
 // Create a new Dynamic QR
 exports.createQR = async (req, res) => {
     try {
-        if (!req.user) return res.status(401).json({ msg: "Auth failed" });
+        const { title, originalUrl, urlToAnalyze } = req.body;
+        console.log("Analyzing URL:", urlToAnalyze);
 
-        const { title, originalUrl } = req.body;
+        let aiDescription = "";
+        let aiCategory = "General";
+
+       if (urlToAnalyze) {
+            try {
+                const aiMetadata = await generateSmartMetadata(urlToAnalyze);
+                console.log("AI Result:", aiMetadata); // Check your terminal for this!
+                aiDescription = aiMetadata.description || "";
+                aiCategory = aiMetadata.category || "General";
+            } catch (aiErr) {
+                console.error("AI unreachable.");
+            }
+        }
+
         const newQR = new QR({
             user: req.user.id,
-            title,
+            title: title, // YOUR NAME - NEVER CHANGED.
+            category: aiCategory, // AI helper
+            description: aiDescription, // AI helper
             originalUrl,
-            shortId: nanoid(6)
+            shortId: require('nanoid').nanoid(6)
         });
-
         await newQR.save();
         res.status(201).json({ success: true, data: newQR });
+
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        // This only triggers if the Database or something critical fails
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 };
 

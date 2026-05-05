@@ -11,10 +11,15 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(false);
     const [generatedData, setGeneratedData] = useState(null); 
 
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
     const [mode, setMode] = useState('link');
     const [file, setFile] = useState(null);
 
     const user = JSON.parse(localStorage.getItem('user')) || { name: 'User' };
+
+   // 1. At the top of the component, REMOVE this line:
+// const [targetUrl, setTargetUrl] = useState(""); 
 
     const handleCreateQR = async () => {
         if (!qrName || (mode === 'link' && !url) || (mode === 'file' && !file)) {
@@ -22,6 +27,10 @@ const Dashboard = () => {
         }
 
         setLoading(true);
+        
+        // Only show "AI is analyzing" if we are in link mode
+        if (mode === 'link') setIsAnalyzing(true); 
+
         try {
             let finalUrl = url;
 
@@ -34,7 +43,6 @@ const Dashboard = () => {
                 });
 
                 if (uploadRes.data.success) {
-                    // NO MORE HARDCODED IP HERE
                     finalUrl = uploadRes.data.filePath;
                 } else {
                     throw new Error("File upload failed");
@@ -43,7 +51,9 @@ const Dashboard = () => {
 
             const res = await API.post('/qr/generate', {
                 title: qrName,
-                originalUrl: finalUrl 
+                originalUrl: finalUrl,
+                // Use 'url' here because that is the variable you defined in your state
+                urlToAnalyze: mode === 'link' ? url : '' 
             });
 
             if (res.data.success) {
@@ -54,6 +64,7 @@ const Dashboard = () => {
             alert("Error creating QR flow");
         } finally {
             setLoading(false);
+            setIsAnalyzing(false); // This stops the pulse animation
         }
     };
 
@@ -107,6 +118,29 @@ const Dashboard = () => {
                             />
                         </div>
 
+                       {generatedData && (
+    <div className="w-full mt-8 p-6 bg-white/5 border border-white/10 rounded-2xl">
+        <div className="flex justify-between items-center mb-4">
+            {/* 1. Show the Category as a Tag */}
+            <span className="text-[10px] font-black uppercase tracking-widest bg-[#5C7C89]/20 text-[#5C7C89] px-3 py-1 rounded-md border border-[#5C7C89]/30">
+                {generatedData.category || 'General'}
+            </span>
+            
+            <div className="h-1.5 w-1.5 rounded-full bg-[#5C7C89] animate-pulse" />
+        </div>
+
+        {/* 2. Show your Title */}
+        <h3 className="text-2xl font-black text-white mb-2">{generatedData.title}</h3>
+
+        {/* 3. Show the AI Insight */}
+        {generatedData.description && (
+            <p className="text-white/40 text-sm italic leading-relaxed">
+                <span className="text-[#5C7C89] font-bold not-italic mr-1">AI Note:</span> 
+                {generatedData.description}
+            </p>
+        )}
+    </div>
+)}
                         <div className="relative">
                             <div className="flex items-center justify-between mb-2 ml-1">
                                 <label className="text-white/40 text-xs uppercase tracking-widest block">

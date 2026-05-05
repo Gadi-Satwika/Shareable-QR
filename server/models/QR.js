@@ -7,6 +7,7 @@ const QRSchema = new mongoose.Schema({
     shortId: { type: String, unique: true, required: true }, // The unique ID for redirection
     scanCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    category: { type: String, default: 'General' },
     expiresAt: { type: Date },
     // Advanced Analytics
     scans: [{
