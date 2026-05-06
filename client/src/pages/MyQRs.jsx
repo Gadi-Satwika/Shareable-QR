@@ -5,6 +5,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import API from '../api/axios';
 import { REDIRECT_BASE_URL, BASE_URL } from '../config';
 
+import AssistantBot from '../components/AssistantBot';
+
 const MyQRs = () => {
     const [qrs, setQrs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -13,6 +15,8 @@ const MyQRs = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
+
+    const user = JSON.parse(localStorage.getItem('user')); // Or however you store your auth data
 
     useEffect(() => {
         fetchQRs();
@@ -236,58 +240,60 @@ const MyQRs = () => {
             )}
 
             {analysisQR && (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0D1B2A]/90 backdrop-blur-md p-4">
-        <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#242424] border border-white/10 p-8 rounded-[2.5rem] max-w-lg w-full relative shadow-2xl"
-        >
-            <button 
-                onClick={() => setAnalysisQR(null)}
-                className="absolute top-6 right-6 text-white/40 hover:text-white"
-            >
-                <X size={24} />
-            </button>
+                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#0D1B2A]/90 backdrop-blur-md p-4">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-[#242424] border border-white/10 p-8 rounded-[2.5rem] max-w-lg w-full relative shadow-2xl"
+                    >
+                        <button 
+                            onClick={() => setAnalysisQR(null)}
+                            className="absolute top-6 right-6 text-white/40 hover:text-white"
+                        >
+                            <X size={24} />
+                        </button>
 
-            <div className="mb-8">
-                <h3 className="text-2xl font-bold text-white mb-1">Scan Intelligence</h3>
-                <p className="text-[#5C7C89] text-sm uppercase tracking-widest">{analysisQR.title}</p>
-            </div>
-
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {analysisQR.scans && analysisQR.scans.length > 0 ? (
-                    analysisQR.scans.slice().reverse().map((scan, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-[#5C7C89]/20 p-2 rounded-xl">
-                                    {scan.device === 'Mobile' ? <Smartphone size={18} className="text-[#5C7C89]" /> : <Monitor size={18} className="text-[#5C7C89]" />}
-                                </div>
-                                <div>
-                                    <div className="text-white text-sm font-medium">{scan.device} User</div>
-                                    <div className="text-white/30 text-[10px] uppercase">
-                                        {new Date(scan.timestamp).toLocaleDateString()} • {new Date(scan.timestamp).toLocaleTimeString()}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="text-[10px] font-mono text-[#5C7C89] bg-[#5C7C89]/10 px-2 py-1 rounded-md">
-                                {scan.browser || 'Chrome'}
-                            </div>
+                        <div className="mb-8">
+                            <h3 className="text-2xl font-bold text-white mb-1">Scan Intelligence</h3>
+                            <p className="text-[#5C7C89] text-sm uppercase tracking-widest">{analysisQR.title}</p>
                         </div>
-                    ))
-                ) : (
-                    <div className="text-center py-10 text-white/20">No scan data recorded yet.</div>
-                )}
-            </div>
 
-            <button 
-                onClick={() => setAnalysisQR(null)}
-                className="w-full mt-8 bg-white/5 border border-white/10 py-3 rounded-xl text-white/60 font-medium hover:bg-white/10 transition-all"
-            >
-                Close Insights
-            </button>
-        </motion.div>
-    </div>
-)}
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {analysisQR.scans && analysisQR.scans.length > 0 ? (
+                                analysisQR.scans.slice().reverse().map((scan, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-[#5C7C89]/20 p-2 rounded-xl">
+                                                {scan.device === 'Mobile' ? <Smartphone size={18} className="text-[#5C7C89]" /> : <Monitor size={18} className="text-[#5C7C89]" />}
+                                            </div>
+                                            <div>
+                                                <div className="text-white text-sm font-medium">{scan.device} User</div>
+                                                <div className="text-white/30 text-[10px] uppercase">
+                                                    {new Date(scan.timestamp).toLocaleDateString()} • {new Date(scan.timestamp).toLocaleTimeString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-[10px] font-mono text-[#5C7C89] bg-[#5C7C89]/10 px-2 py-1 rounded-md">
+                                            {scan.browser || 'Chrome'}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 text-white/20">No scan data recorded yet.</div>
+                            )}
+                        </div>
+
+                        <button 
+                            onClick={() => setAnalysisQR(null)}
+                            className="w-full mt-8 bg-white/5 border border-white/10 py-3 rounded-xl text-white/60 font-medium hover:bg-white/10 transition-all"
+                        >
+                            Close Insights
+                        </button>
+                    </motion.div>
+                </div>
+            )}
+
+             <AssistantBot user={user} qrs={qrs} />
         </div>
     );
 };

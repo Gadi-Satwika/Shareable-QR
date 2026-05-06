@@ -23,6 +23,8 @@ app.use(express.json());
 app.use('/api/qr', qrRoutes);
 app.use('/api/auth', authRoutes);
 
+app.use('/api/chat', require('./routes/chatRoutes'));
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB Connection
@@ -34,4 +36,6 @@ mongoose.connect(process.env.MONGO_URI)
 app.get('/', (req, res) => res.send("QR-Flow API is Running"));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+});

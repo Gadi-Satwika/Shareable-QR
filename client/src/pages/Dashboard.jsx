@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
 import { Download, Plus, Link as LinkIcon, Loader2, CheckCircle } from 'lucide-react';
 import API from '../api/axios';
 import { REDIRECT_BASE_URL, BASE_URL } from '../config';
+
+import AssistantBot from '../components/AssistantBot';
 
 const Dashboard = () => {
     const [url, setUrl] = useState('');
@@ -15,6 +17,20 @@ const Dashboard = () => {
 
     const [mode, setMode] = useState('link');
     const [file, setFile] = useState(null);
+
+    const [qrs, setQrs] = useState([]);
+
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                const res = await API.get('/qr/all'); // Use your existing "get all" route
+                setQrs(res.data.data || res.data); 
+            } catch (err) {
+                console.error("Assistant context fetch failed", err);
+            }
+        };
+        fetchAllData();
+    }, []);
 
     const user = JSON.parse(localStorage.getItem('user')) || { name: 'User' };
 
@@ -119,28 +135,28 @@ const Dashboard = () => {
                         </div>
 
                        {generatedData && (
-    <div className="w-full mt-8 p-6 bg-white/5 border border-white/10 rounded-2xl">
-        <div className="flex justify-between items-center mb-4">
-            {/* 1. Show the Category as a Tag */}
-            <span className="text-[10px] font-black uppercase tracking-widest bg-[#5C7C89]/20 text-[#5C7C89] px-3 py-1 rounded-md border border-[#5C7C89]/30">
-                {generatedData.category || 'General'}
-            </span>
-            
-            <div className="h-1.5 w-1.5 rounded-full bg-[#5C7C89] animate-pulse" />
-        </div>
+                            <div className="w-full mt-8 p-6 bg-white/5 border border-white/10 rounded-2xl">
+                                <div className="flex justify-between items-center mb-4">
+                                    {/* 1. Show the Category as a Tag */}
+                                    <span className="text-[10px] font-black uppercase tracking-widest bg-[#5C7C89]/20 text-[#5C7C89] px-3 py-1 rounded-md border border-[#5C7C89]/30">
+                                        {generatedData.category || 'General'}
+                                    </span>
+                                    
+                                    <div className="h-1.5 w-1.5 rounded-full bg-[#5C7C89] animate-pulse" />
+                                </div>
 
-        {/* 2. Show your Title */}
-        <h3 className="text-2xl font-black text-white mb-2">{generatedData.title}</h3>
+                                {/* 2. Show your Title */}
+                                <h3 className="text-2xl font-black text-white mb-2">{generatedData.title}</h3>
 
-        {/* 3. Show the AI Insight */}
-        {generatedData.description && (
-            <p className="text-white/40 text-sm italic leading-relaxed">
-                <span className="text-[#5C7C89] font-bold not-italic mr-1">AI Note:</span> 
-                {generatedData.description}
-            </p>
-        )}
-    </div>
-)}
+                                {/* 3. Show the AI Insight */}
+                                {generatedData.description && (
+                                    <p className="text-white/40 text-sm italic leading-relaxed">
+                                        <span className="text-[#5C7C89] font-bold not-italic mr-1">AI Note:</span> 
+                                        {generatedData.description}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                         <div className="relative">
                             <div className="flex items-center justify-between mb-2 ml-1">
                                 <label className="text-white/40 text-xs uppercase tracking-widest block">
@@ -235,6 +251,7 @@ const Dashboard = () => {
                     </button>
                 </div>
             </div>
+            <AssistantBot user={user} qrs={qrs} />
         </div>
     );
 };
