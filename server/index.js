@@ -32,17 +32,15 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.log("❌ Connection Error:", err));
 
-// Test Route
-app.get('/', (req, res) => res.send("QR-Flow API is Running"));
 
 // Serve static assets if in production
 if (process.env.NODE_ENV === 'production') {
-    // Set static folder
+    // 1. Set static folder
     app.use(express.static(path.join(__dirname, '../client/dist')));
 
-    // The (.*) tells Express to match any string and name it as a parameter
-    // This is the modern 'catch-all' syntax
-    app.get('/:any*', (req, res) => {
+    // 2. The ONLY way to do a catch-all in the latest version:
+    // We name the parameter 'path' and use {0,} to capture everything
+    app.get('*', (req, res) => {
         res.sendFile(path.resolve(__dirname, '../client', 'dist', 'index.html'));
     });
 }
