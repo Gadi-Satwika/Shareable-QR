@@ -41,7 +41,8 @@ if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../client/dist')));
 
     // The (.*) tells Express to match any string and name it as a parameter
-    app.get('(.*)', (req, res) => {
+    // This is the modern 'catch-all' syntax
+    app.get('/:any*', (req, res) => {
         res.sendFile(path.resolve(__dirname, '../client', 'dist', 'index.html'));
     });
 }
