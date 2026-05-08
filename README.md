@@ -43,8 +43,8 @@ qr-flow/
 
   cd server
   npm install
-  # Configure your .env with:
-  # MONGO_URI, JWT_SECRET, GROQ_API_KEY, NODE_ENV=production
+  ### Configure your .env with:
+  ### MONGO_URI, JWT_SECRET, GROQ_API_KEY, NODE_ENV=production
   npm start
   
 2. Frontend Setup
