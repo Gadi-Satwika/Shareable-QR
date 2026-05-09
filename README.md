@@ -13,6 +13,8 @@ QR-Flow is an advanced, full-stack MERN application for managing dynamic QR code
 
 ---
 
+## Project Live: {click here}[https://shareable-qr.onrender.com/]
+
 ## 🌟 Key Features
 - **Dynamic QR Generation**: Create QR codes that point to trackable redirection links.
 - **AI Metadata Extraction**: Automatically generates titles, categories, and descriptions for your URLs.
@@ -41,29 +43,31 @@ qr-flow/
 
 1. Backend Setup
 
-  cd server
-  npm install
-  ### Configure your .env with:
-  ### MONGO_URI, JWT_SECRET, GROQ_API_KEY, NODE_ENV=production
-  npm start
+  -- cd server
+  -- npm install
+  #### Configure your .env with:
+  #### MONGO_URI, JWT_SECRET, GROQ_API_KEY, NODE_ENV=production
+  -- npm start
   
 2. Frontend Setup
    
-  cd client
-  npm install
-  npm run dev
-  🚀 Deployment on Render
-  This project is optimized for a Unified Deployment. The backend is configured to serve the frontend from the client/dist folder.
+  -- cd client
+  
+  -- npm install
+  
+  -- npm run dev
+  #### 🚀 Deployment on Render
+  ->This project is optimized for a Unified Deployment. The backend is configured to serve the frontend from the client/dist folder.
 
 ## Settings:
 
-Root Directory: server
+-- Root Directory: server
 
-Build Command: npm install && cd ../client && npm install && npm run build
+-- Build Command: npm install && cd ../client && npm install && npm run build
 
-Start Command: node index.js
+-- Start Command: node index.js
 
-Environment Variables: Ensure NODE_ENV is set to production and MONGO_URI is whitelisted.
+-- Environment Variables: Ensure NODE_ENV is set to production and MONGO_URI is whitelisted.
 
 👨‍💻 Author
 Gadi Satwika
